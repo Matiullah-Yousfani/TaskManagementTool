@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using TaskManagementTool.Models.DTO_s;
 using TaskManagementTool.Models.Models;
 using TaskManagementTool.Models.Repositories.IRepositories;
+using TaskManagementTool.Services;
 
 namespace TaskManagementTool.Controllers
 {
@@ -12,10 +13,12 @@ namespace TaskManagementTool.Controllers
     public class UserAuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly TokenService tokenService;
 
-        public UserAuthController(UserManager<ApplicationUser> user)
+        public UserAuthController(UserManager<ApplicationUser> user, TokenService tokenService)
         {
             this.userManager = user;   
+            this.tokenService = tokenService;
         }
 
         [HttpPost("Register")]
@@ -43,6 +46,8 @@ namespace TaskManagementTool.Controllers
             {
                 return BadRequest(result.Errors);
             }
+            await userManager.AddToRoleAsync(user, "User");
+
 
             return Ok("User registered successfully.");
         }
@@ -50,21 +55,34 @@ namespace TaskManagementTool.Controllers
         [HttpPost("Login")]
         public async Task<IActionResult> Login(LoginRequestDto request)
         {
-            var user = await userManager.FindByEmailAsync(request.Email);
+            var user =
+                await userManager.FindByEmailAsync(request.Email);
 
             if (user == null)
             {
                 return Unauthorized("Invalid email.");
             }
 
-            var result = await userManager.CheckPasswordAsync(user, request.Password);
+            var result =
+                await userManager.CheckPasswordAsync(
+                    user,
+                    request.Password);
 
             if (!result)
             {
                 return Unauthorized("Invalid password.");
             }
 
-            return Ok("Login successful.");
+            // Get roles
+            var roles = await userManager.GetRolesAsync(user);
+
+            // Generate token
+            var token = tokenService.CreateToken(user, roles);
+
+            return Ok(new
+            {
+                Token = token
+            });
         }
     }
 }
