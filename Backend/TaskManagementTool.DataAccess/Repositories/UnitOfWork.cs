@@ -1,35 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TaskManagementTool.DataAccess;
-using TaskManagementTool.Models.Repositories.IRepositories;
+﻿using TaskManagementTool.DataAccess.Repositories.IRepositories;
 
-namespace TaskManagementTool.Models.Repositories
+namespace TaskManagementTool.DataAccess.Repositories;
+
+public class UnitOfWork : IUnitOfWork
 {
-    public class UnitOfWork : IUnitOfWork
+    private readonly ApplicationDbContext _context;
+
+    public UnitOfWork(
+        ApplicationDbContext context,
+        ITaskRepository taskRepository,
+        ICategoryRepository categoryRepository)
     {
-        private readonly ApplicationDbContext applicationDbContext;
+        _context = context;
+        TaskRepository = taskRepository;
+        CategoryRepository = categoryRepository;
+    }
 
+    public ITaskRepository TaskRepository { get; }
 
-        public UnitOfWork(ApplicationDbContext dbContext)
-        {
-            this.applicationDbContext = dbContext;
+    public ICategoryRepository CategoryRepository { get; }
 
-        }
-
-
-
-
-        public async Task SaveAsync()
-        {
-            await applicationDbContext.SaveChangesAsync();
-        }
-
-
-
-
-
+    public async Task SaveAsync(CancellationToken cancellationToken = default)
+    {
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }

@@ -1,88 +1,99 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using TaskManagementTool.Models.Common;
 using TaskManagementTool.Models.DTO_s;
 using TaskManagementTool.Models.Models;
-using TaskManagementTool.Models.Repositories.IRepositories;
 using TaskManagementTool.Services;
 
-namespace TaskManagementTool.Controllers
+namespace TaskManagementTool.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[AllowAnonymous]
+public sealed class UserAuthController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class UserAuthController : ControllerBase
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly TokenService _tokenService;
+    private readonly ILogger<UserAuthController> _logger;
+
+    public UserAuthController(
+        UserManager<ApplicationUser> userManager,
+        TokenService tokenService,
+        ILogger<UserAuthController> logger)
     {
-        private readonly UserManager<ApplicationUser> userManager;
-        private readonly TokenService tokenService;
+        _userManager = userManager;
+        _tokenService = tokenService;
+        _logger = logger;
+    }
 
-        public UserAuthController(UserManager<ApplicationUser> user, TokenService tokenService)
+    [HttpPost("Register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
+    {
+        var existingUser = await _userManager.FindByEmailAsync(request.Email);
+
+        if (existingUser != null)
         {
-            this.userManager = user;   
-            this.tokenService = tokenService;
+            _logger.LogWarning("Registration failed: email {Email} already exists", request.Email);
+            return BadRequest(new { message = "Email already exists." });
         }
 
-        [HttpPost("Register")]
-        public async Task<IActionResult> Register(RegisterRequestDto request)
+        var user = new ApplicationUser
         {
-            // Check existing email
-            var existingUser = await userManager.FindByEmailAsync(request.Email);
+            UserName = request.Username,
+            Email = request.Email
+        };
 
-            if (existingUser != null)
-            {
-                return BadRequest("Email already exists.");
-            }
+        var result = await _userManager.CreateAsync(user, request.Password);
 
-            // Create user
-            var user = new ApplicationUser
-            {
-                UserName = request.Username,
-                Email = request.Email,
-            };
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning(
+                "Registration failed for {Email}: {Errors}",
+                request.Email,
+                string.Join(", ", result.Errors.Select(e => e.Description)));
 
-            // Identity handles password hashing
-            var result = await userManager.CreateAsync(user, request.Password);
-
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
-            await userManager.AddToRoleAsync(user, "User");
-
-
-            return Ok("User registered successfully.");
+            return BadRequest(result.Errors.Select(e => new { e.Code, e.Description }));
         }
 
-        [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginRequestDto request)
+        await _userManager.AddToRoleAsync(user, AppRoles.User);
+
+        _logger.LogInformation("User registered: {UserId} ({Email})", user.Id, user.Email);
+
+        return Ok(new { message = "User registered successfully." });
+    }
+
+    [HttpPost("Login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        if (user == null)
         {
-            var user =
-                await userManager.FindByEmailAsync(request.Email);
-
-            if (user == null)
-            {
-                return Unauthorized("Invalid email.");
-            }
-
-            var result =
-                await userManager.CheckPasswordAsync(
-                    user,
-                    request.Password);
-
-            if (!result)
-            {
-                return Unauthorized("Invalid password.");
-            }
-
-            // Get roles
-            var roles = await userManager.GetRolesAsync(user);
-
-            // Generate token
-            var token = tokenService.CreateToken(user, roles);
-
-            return Ok(new
-            {
-                Token = token
-            });
+            _logger.LogWarning("Login failed: unknown email {Email}", request.Email);
+            return Unauthorized(new { message = "Invalid credentials." });
         }
+
+        var validPassword = await _userManager.CheckPasswordAsync(user, request.Password);
+
+        if (!validPassword)
+        {
+            _logger.LogWarning("Login failed: bad password for user {UserId}", user.Id);
+            return Unauthorized(new { message = "Invalid credentials." });
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var token = _tokenService.CreateToken(user, roles);
+
+        _logger.LogInformation("User {UserId} logged in successfully", user.Id);
+
+        return Ok(new AuthResponseDto
+        {
+            Token = token,
+            UserId = user.Id,
+            UserName = user.UserName ?? string.Empty,
+            Email = user.Email ?? string.Empty,
+            Roles = roles.ToList()
+        });
     }
 }

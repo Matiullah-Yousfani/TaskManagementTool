@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Channels;
-using System.Threading.Tasks;
+﻿namespace TaskManagementTool.DataAccess.Repositories.IRepositories;
 
-namespace TaskManagementTool.Models.Repositories.IRepositories
+public interface IUnitOfWork
 {
-    public interface IUnitOfWork
-    {
-            // Add other repositories here as needed
-            // ITaskRepository TaskRepository { get; }
-    
-            Task SaveAsync();
-    }
+    ITaskRepository TaskRepository { get; }
+
+    ICategoryRepository CategoryRepository { get; }
+
+    Task SaveAsync(CancellationToken cancellationToken = default);
 }
