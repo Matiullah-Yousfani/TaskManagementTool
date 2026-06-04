@@ -56,7 +56,8 @@ public class TaskRepository : ITaskRepository
             query = query.Where(t => t.AssignedToUserId == assignedToUserIdFilter);
 
         return await query
-            .OrderByDescending(t => t.CreatedAt)
+            .OrderByDescending(t => t.Priority)
+            .ThenByDescending(t => t.CreatedAt)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
     }
@@ -95,7 +96,8 @@ public class TaskRepository : ITaskRepository
 
         var page = parameters.Page < 1 ? 1 : parameters.Page;
         var items = await query
-            .OrderByDescending(t => t.CreatedAt)
+            .OrderByDescending(t => t.Priority)
+            .ThenByDescending(t => t.CreatedAt)
             .Skip((page - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
             .AsNoTracking()

@@ -36,3 +36,16 @@ export function getStoredAuth(): AuthResponse | null {
     return null;
   }
 }
+
+export function syncStoredAuthUser(updates: { userName?: string; email?: string }) {
+  const stored = getStoredAuth();
+  if (!stored) return;
+  localStorage.setItem(
+    'authUser',
+    JSON.stringify({
+      ...stored,
+      userName: updates.userName ?? stored.userName,
+      email: updates.email ?? stored.email,
+    }),
+  );
+}

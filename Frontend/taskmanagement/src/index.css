@@ -1,1 +1,239 @@
-@import './App.css';
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-accent: #22d3ee;
+}
+
+@layer base {
+  html {
+    @apply antialiased scroll-smooth;
+  }
+  body {
+    @apply min-h-screen font-sans text-slate-100 overflow-x-hidden;
+    background: #0b0f1a;
+  }
+}
+
+.mesh-bg {
+  background-color: #0b0f1a;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.35) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(34, 211, 238, 0.2) 0, transparent 45%),
+    radial-gradient(at 50% 100%, rgba(168, 85, 247, 0.25) 0, transparent 55%);
+}
+
+.glass {
+  @apply rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-xl shadow-black/20;
+}
+
+.glass-strong {
+  @apply rounded-2xl border border-white/15 bg-white/[0.1] backdrop-blur-2xl shadow-2xl shadow-black/30;
+}
+
+.glass-input {
+  @apply w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-brand-500/60 focus:bg-slate-900/80 focus:ring-2 focus:ring-brand-500/20;
+}
+
+.glass-select {
+  @apply w-full appearance-none rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2.5 text-sm text-white outline-none transition focus:border-brand-500/60 focus:bg-slate-900/80 focus:ring-2 focus:ring-brand-500/20;
+  color-scheme: dark;
+}
+
+.glass-select option {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.filter-select {
+  @apply min-w-[160px] max-w-[220px];
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 active:scale-[0.98];
+}
+
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 active:scale-[0.98];
+}
+
+.nav-link {
+  @apply flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white;
+}
+
+.nav-link-active {
+  @apply bg-white/10 text-white shadow-inner shadow-white/5;
+}
+
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Kanban */
+.kanban-page { isolation: isolate; }
+
+.kanban-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kanban-board {
+  display: flex;
+  gap: 1rem;
+  min-height: 520px;
+}
+
+@media (min-width: 1024px) {
+  .kanban-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.kanban-column {
+  width: min(85vw, 300px);
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .kanban-column { width: auto; }
+}
+
+.kanban-column-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(15,23,42,0.95);
+  overflow: hidden;
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1rem 0.75rem;
+  background: rgb(15 23 42);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  z-index: 2;
+}
+
+.kanban-column-header h3 {
+  font-weight: 600;
+  color: white;
+}
+
+.kanban-count {
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.1);
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(203 213 225);
+}
+
+.kanban-drop-area {
+  flex: 1;
+  min-height: 420px;
+  padding: 0.75rem;
+  position: relative;
+  transition: background 0.12s ease;
+}
+
+.kanban-drop-area--active {
+  background: rgba(99,102,241,0.12);
+  outline: 2px dashed rgba(129,140,248,0.5);
+  outline-offset: -4px;
+}
+
+.kanban-empty {
+  position: absolute;
+  inset: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(255,255,255,0.1);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  color: rgb(100 116 139);
+  pointer-events: none;
+}
+
+.kanban-drop-area--active .kanban-empty {
+  border-color: rgba(129,140,248,0.45);
+  color: rgb(165 180 252);
+}
+
+.kanban-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.kanban-card {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.kanban-card--idle:hover { filter: brightness(1.08); }
+
+.kanban-card--dragging {
+  cursor: grabbing !important;
+  opacity: 1 !important;
+  background: rgb(30 41 59) !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important;
+}
+
+@keyframes high-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(244,63,94,0.3); }
+  50% { box-shadow: 0 0 28px rgba(244,63,94,0.5); }
+}
+
+.kanban-card--high.kanban-card--idle {
+  animation: high-glow 3s ease-in-out infinite;
+}
+
+/* List view priority rows */
+.list-row--high {
+  box-shadow: 0 4px 20px rgba(244, 63, 94, 0.2);
+}
+
+.list-row--high:hover {
+  box-shadow: 0 6px 28px rgba(244, 63, 94, 0.35);
+}
+
+.list-row--medium {
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.08);
+}

@@ -40,20 +40,18 @@ public sealed class TasksController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<TaskResponseDto>> Create(
         [FromBody] CreateTaskDto dto,
         CancellationToken cancellationToken)
     {
-        var adminId = _currentUser.RequireUserId();
+        var creatorId = _currentUser.RequireUserId();
 
         await ValidateCategoryIdAsync(dto.CategoryId, cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(dto.AssignedToUserId))
-            throw new BadRequestException("Assignee is required when creating a task.");
-
-        var assigneeId = dto.AssignedToUserId.Trim();
-        await EnsureUserExistsAsync(assigneeId, cancellationToken);
+        var assigneeId = await ResolveAssigneeOnCreateAsync(
+            creatorId,
+            dto.AssignedToUserId,
+            cancellationToken);
 
         var task = new TaskItem
         {
@@ -64,7 +62,7 @@ public sealed class TasksController : ControllerBase
             Priority = dto.Priority,
             DueDate = dto.DueDate,
             CategoryId = dto.CategoryId,
-            CreatedByUserId = adminId,
+            CreatedByUserId = creatorId,
             AssignedToUserId = assigneeId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -74,9 +72,9 @@ public sealed class TasksController : ControllerBase
         await _unitOfWork.SaveAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Task {TaskId} created by admin {AdminId}, assigned to {AssignedToUserId}",
+            "Task {TaskId} created by {CreatedByUserId}, assigned to {AssignedToUserId}",
             task.Id,
-            adminId,
+            creatorId,
             assigneeId);
 
         var created = await _unitOfWork.TaskRepository.GetByIdAsync(task.Id, cancellationToken);
@@ -319,6 +317,33 @@ public sealed class TasksController : ControllerBase
         await _taskNotifier.NotifyTaskDeletedAsync(id, assigneeId);
 
         return NoContent();
+    }
+
+    private async Task<string> ResolveAssigneeOnCreateAsync(
+        string creatorId,
+        string? requestedAssigneeId,
+        CancellationToken cancellationToken)
+    {
+        var trimmed = string.IsNullOrWhiteSpace(requestedAssigneeId)
+            ? null
+            : requestedAssigneeId.Trim();
+
+        if (_currentUser.IsAdmin)
+        {
+            if (string.IsNullOrEmpty(trimmed))
+                throw new BadRequestException("Assignee is required when creating a task.");
+
+            await EnsureUserExistsAsync(trimmed, cancellationToken);
+            return trimmed;
+        }
+
+        if (!string.IsNullOrEmpty(trimmed) && trimmed != creatorId)
+        {
+            throw new ForbiddenAccessException(
+                "You can only create tasks assigned to yourself.");
+        }
+
+        return creatorId;
     }
 
     private async Task EnsureUserExistsAsync(string userId, CancellationToken cancellationToken)

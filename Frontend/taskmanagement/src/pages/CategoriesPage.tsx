@@ -1,4 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { FolderPlus, Pencil, Trash2 } from 'lucide-react';
 import {
   createCategory,
   deleteCategory,
@@ -6,23 +8,31 @@ import {
   updateCategory,
 } from '../api/categories';
 import { ApiClientError } from '../api/client';
-import { Alert, PageHeader } from '../components/Ui';
+import { useAuth } from '../context/AuthContext';
+import {
+  FormField,
+  FormInput,
+  FormSection,
+} from '../components/ui/FormControls';
+import { Alert, GlassPanel, PageHeader, Spinner } from '../components/ui/GlassPanel';
 import type { Category } from '../types';
 
 export function CategoriesPage() {
+  const { isAdmin } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
       setCategories(await getCategories());
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Failed to load categories');
+      setError(err instanceof ApiClientError ? err.message : 'Load failed');
     } finally {
       setLoading(false);
     }
@@ -34,6 +44,7 @@ export function CategoriesPage() {
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     setError('');
     try {
       await createCategory(name.trim());
@@ -41,105 +52,135 @@ export function CategoriesPage() {
       await load();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Create failed');
-    }
-  };
-
-  const handleUpdate = async (id: string) => {
-    setError('');
-    try {
-      await updateCategory(id, editName.trim());
-      setEditingId(null);
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Update failed');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this category? Tasks will be unlinked.')) return;
-    setError('');
-    try {
-      await deleteCategory(id);
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Delete failed');
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div>
-      <PageHeader title="Categories" subtitle="Admin — manage task categories" />
+    <div className="max-w-2xl">
+      <PageHeader
+        title="Categories"
+        subtitle={
+          isAdmin
+            ? 'Everyone can add categories · admins can edit or delete'
+            : 'Create categories to organize your tasks'
+        }
+      />
       {error && <Alert message={error} />}
 
-      <form onSubmit={handleCreate} className="card form-inline">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="New category name"
-          required
-          maxLength={128}
-        />
-        <button type="submit" className="btn btn-primary">
-          Add category
-        </button>
-      </form>
-
-      {loading ? (
-        <div className="page-center"><div className="spinner" /></div>
-      ) : (
-        <ul className="category-list">
-          {categories.map((cat) => (
-            <li key={cat.id} className="card category-item">
-              {editingId === cat.id ? (
-                <>
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    maxLength={128}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <GlassPanel className="mb-6 p-6">
+          <FormSection title="Add category" description="Create a label for grouping tasks">
+            <form onSubmit={handleCreate} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <FormField label="Category name" required>
+                  <FormInput
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Marketing, Engineering…"
+                    required
                   />
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleUpdate(cat.id)}
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setEditingId(null)}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span>{cat.name}</span>
-                  <div className="category-actions">
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => {
-                        setEditingId(cat.id);
-                        setEditName(cat.name);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleDelete(cat.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                </FormField>
+              </div>
+              <button type="submit" className="btn-primary shrink-0" disabled={saving}>
+                <FolderPlus className="h-4 w-4" />
+                {saving ? 'Adding…' : 'Add category'}
+              </button>
+            </form>
+          </FormSection>
+        </GlassPanel>
+
+        {loading ? (
+          <div className="flex h-32 items-center justify-center">
+            <Spinner />
+          </div>
+        ) : categories.length === 0 ? (
+          <GlassPanel className="p-10 text-center text-slate-400">
+            No categories yet. Add one above.
+          </GlassPanel>
+        ) : (
+          <div className="space-y-3">
+            {categories.map((cat, i) => (
+              <motion.div
+                key={cat.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <GlassPanel className="flex flex-wrap items-center justify-between gap-3 p-4">
+                  {isAdmin && editingId === cat.id ? (
+                    <>
+                      <FormInput
+                        className="flex-1"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={async () => {
+                            try {
+                              await updateCategory(cat.id, editName);
+                              setEditingId(null);
+                              await load();
+                            } catch (err) {
+                              setError(err instanceof ApiClientError ? err.message : 'Update failed');
+                            }
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button type="button" className="btn-ghost" onClick={() => setEditingId(null)}>
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-medium text-white">{cat.name}</span>
+                      {isAdmin && (
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() => {
+                              setEditingId(cat.id);
+                              setEditName(cat.name);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-danger"
+                            onClick={async () => {
+                              if (confirm('Delete category?')) {
+                                try {
+                                  await deleteCategory(cat.id);
+                                  await load();
+                                } catch (err) {
+                                  setError(err instanceof ApiClientError ? err.message : 'Delete failed');
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </GlassPanel>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

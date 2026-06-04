@@ -25,6 +25,16 @@ export interface UserSummary {
   email?: string;
 }
 
+export type AppRole = 'Admin' | 'User';
+
+export interface UserAdmin {
+  id: string;
+  userName: string;
+  email?: string;
+  roles: string[];
+  createdAt: string;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -81,7 +91,7 @@ export interface CreateTaskPayload {
   priority: TaskPriority;
   dueDate?: string | null;
   categoryId?: string | null;
-  assignedToUserId: string;
+  assignedToUserId?: string;
 }
 
 export interface UpdateTaskPayload extends CreateTaskPayload {}

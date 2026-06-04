@@ -44,7 +44,6 @@ public sealed class CategoriesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<CategoryResponseDto>> Create(
         [FromBody] CreateCategoryDto dto,
         CancellationToken cancellationToken)

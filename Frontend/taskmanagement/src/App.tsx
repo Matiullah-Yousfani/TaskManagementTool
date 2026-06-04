@@ -1,17 +1,17 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AdminRoute } from './components/AdminRoute';
-import { Layout } from './components/Layout';
+import { AppShell } from './components/layout/AppShell';
+import { KanbanBoard } from './components/kanban/KanbanBoard';
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import { LoginPage, RegisterPage } from './pages/AuthPages';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { RegisterPage } from './pages/RegisterPage';
 import { TaskDetailPage } from './pages/TaskDetailPage';
 import { TaskFormPage } from './pages/TaskFormPage';
 import { TaskListPage } from './pages/TaskListPage';
-import './App.css';
+import { UserManagePage } from './pages/UserManagePage';
 
 export default function App() {
   return (
@@ -24,13 +24,15 @@ export default function App() {
           </Route>
 
           <Route element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
+            <Route element={<AppShell />}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/tasks" element={<TaskListPage />} />
+              <Route path="/tasks" element={<KanbanBoard />} />
+              <Route path="/tasks/list" element={<TaskListPage />} />
+              <Route path="/tasks/new" element={<TaskFormPage />} />
+              <Route path="/categories" element={<CategoriesPage />} />
               <Route element={<AdminRoute />}>
-                <Route path="/tasks/new" element={<TaskFormPage />} />
+                <Route path="/admin/users" element={<UserManagePage />} />
                 <Route path="/tasks/:id/edit" element={<TaskFormPage />} />
-                <Route path="/categories" element={<CategoriesPage />} />
               </Route>
               <Route path="/tasks/:id" element={<TaskDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />

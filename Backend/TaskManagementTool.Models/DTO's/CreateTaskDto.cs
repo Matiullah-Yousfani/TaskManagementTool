@@ -20,7 +20,7 @@ public class CreateTaskDto
 
     public Guid? CategoryId { get; set; }
 
-    [Required]
-    public string AssignedToUserId { get; set; } = string.Empty;
+    /// <summary>Admin only — required when admin creates for another user. Omit for self-assigned user tasks.</summary>
+    public string? AssignedToUserId { get; set; }
 }
 
